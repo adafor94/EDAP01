@@ -11,7 +11,7 @@ env: ConnectFourEnv = gym.make("ConnectFour-v0")
 #SERVER_ADRESS = "http://localhost:8000/"
 SERVER_ADRESS = "https://vilde.cs.lth.se/edap01-4inarow/"
 API_KEY = 'nyckel'
-STIL_ID = ["da20example-s1", "da22test-s2"] # TODO: fill this list with your stil-id's
+STIL_ID = ["ad0014fo-s"] # TODO: fill this list with your stil-id's
 
 def call_server(move):
    res = requests.post(SERVER_ADRESS + "move",
@@ -74,6 +74,41 @@ def student_move():
    The function should return a move from 0-6
    """
    return random.choice([0, 1, 2, 3, 4, 5, 6])
+
+def student_move2(state):
+   return alpha_beta_decision(state)
+
+def alpha_beta_decision(state):              #input current state
+   avmoves = env.available_moves()           #Avaliable moves
+   return 0
+
+def max_value(state, alpha, beta):   
+   """ 
+   Inputs:
+   state = current state in game
+   alpha = the value of the best alternative for MAX along the path to state
+   beta = the value of the best alternative for MIN along the path to state
+   Return: utility value
+   """
+
+   """ 
+   if end-state(state) return result 
+   else:          
+      v = -infinity 
+      v = MAX(v, MIN-VALUE(s,a,b))
+
+      if v >= b return b
+      else: a = MAX(a, v)
+
+   return v 
+   """
+      
+   return 0       
+
+def min_value(state, alpha, beta):           #returns utility value
+   #same as max_value but roles of a and b reversed
+   return 0
+
 
 def play_game(vs_server = False):
    """

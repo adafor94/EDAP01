@@ -1,9 +1,12 @@
+from json.encoder import INFINITY
 import gym
 import random
 import requests
 import numpy as np
 import argparse
 import sys
+
+from sqlalchemy import true
 from gym_connect_four import ConnectFourEnv
 
 env: ConnectFourEnv = gym.make("ConnectFour-v0")
@@ -12,6 +15,8 @@ env: ConnectFourEnv = gym.make("ConnectFour-v0")
 SERVER_ADRESS = "https://vilde.cs.lth.se/edap01-4inarow/"
 API_KEY = 'nyckel'
 STIL_ID = ["ad0014fo-s"] # TODO: fill this list with your stil-id's
+
+board_shape = (6,7)
 
 def call_server(move):
    res = requests.post(SERVER_ADRESS + "move",
@@ -66,7 +71,7 @@ def opponents_move(env):
    env.change_player() # change back to student before returning
    return state, reward, done
 
-def student_move():
+def student_move_og():
    """
    TODO: Implement your min-max alpha-beta pruning algorithm here.
    Give it whatever input arguments you think are necessary
@@ -75,12 +80,99 @@ def student_move():
    """
    return random.choice([0, 1, 2, 3, 4, 5, 6])
 
-def student_move2(state):
-   return alpha_beta_decision(state)
+def student_move(state):
+   res, move = minimax(state, 3, True)
+   print("res =", res, "move =", move)
+   return move
 
-def alpha_beta_decision(state):              #input current state
-   avmoves = env.available_moves()           #Avaliable moves
-   return 0
+def minimax(state, depth, ourTurn):              #input current state
+   bestMove = -1
+
+   end, score = endState(state)
+   if depth == 0:
+      return score/50, bestMove
+   if end:
+      return (not ourTurn), bestMove
+
+
+   if ourTurn:                                     
+      maxEval = -INFINITY
+      for move in availableMoves(state):
+         childState = getChild(state, move, ourTurn)
+         res, _ = minimax(childState, depth-1, True)
+         if  res > maxEval:
+            maxEval = res
+            bestMove = move
+      return maxEval, bestMove
+
+   else:
+      minEval = INFINITY
+      for move in availableMoves(state):
+         childState = getChild(state, move, ourTurn)
+         res, _ = minimax(childState, depth-1, False)
+         if  res < minEval:
+            minEval = res
+            bestMove = move
+      return minEval, bestMove
+
+def getChild(state, move, ourTurn):
+   stateCopy = np.copy(state)
+   for index in list(reversed(range(board_shape[0]))):
+      if stateCopy[index][move] == 0:
+            stateCopy[index][move] = 1 if ourTurn else -1
+            break
+   return stateCopy
+
+def availableMoves(state):
+   return set(
+      (i for i in range(board_shape[1]) if state[0][i] == 0))
+
+
+
+def endState(state): 
+   # Test rows
+   tot = 0
+   for i in range(board_shape[0]):
+      for j in range(board_shape[1] - 3):
+            value = sum(state[i][j:j + 4])
+            if abs(value) == 4:
+               return (True, tot)
+            tot += value
+
+
+   # Test columns on transpose array
+   reversed_board = [list(i) for i in zip(*state)]
+   for i in range(board_shape[1]):
+      for j in range(board_shape[0] - 3):
+            value = sum(reversed_board[i][j:j + 4])
+            if abs(value) == 4:
+               return (True, tot)
+            tot += value
+
+
+   # Test diagonal
+   for i in range(board_shape[0] - 3):
+      for j in range(board_shape[1] - 3):
+            value = 0
+            for k in range(4):
+               value += state[i + k][j + k]
+               if abs(value) == 4:
+                  return (True, tot)
+               tot += value
+
+   reversed_board = np.fliplr(state)
+   # Test reverse diagonal
+   for i in range(board_shape[0] - 3):
+      for j in range(board_shape[1] - 3):
+            value = 0
+            for k in range(4):
+               value += reversed_board[i + k][j + k]
+               if abs(value) == 4:
+                  return (True, tot)
+               tot += value
+
+#   print(tot)
+   return (False, tot)
 
 def max_value(state, alpha, beta):   
    """ 
@@ -154,7 +246,7 @@ def play_game(vs_server = False):
    done = False
    while not done:
       # Select your move
-      stmove = student_move() # TODO: change input here
+      stmove = student_move(state) # TODO: change input here
 
       # make both student and bot/server moves
       if vs_server:

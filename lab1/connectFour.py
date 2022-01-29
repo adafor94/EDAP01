@@ -62,8 +62,8 @@ def opponents_move(env, state):
    # TODO: Optional? change this to select actions with your policy too
    # that way you get way more interesting games, and you can see if starting
    # is enough to guarrantee a win
-  # action = random.choice(list(avmoves))
-   _, action = minimax(state, 3, -INFINITY, INFINITY, False)
+   action = random.choice(list(avmoves))
+#   _, action = minimax(state, 3, -INFINITY, INFINITY, False)
 
    state, reward, done, _ = env.step(action)
    if done:
@@ -82,20 +82,22 @@ def student_move_og():
    return random.choice([0, 1, 2, 3, 4, 5, 6])
 
 def student_move(state):
-   print("res:", evaluatePosition2(state, p=True))
-   res, move = minimax(state, 5, -INFINITY, INFINITY, True)
+  # print("res:", evaluatePosition(state, p=True))
+   res, move = minimax(state, 6, -INFINITY, INFINITY, True)
+   print("move", move, "res", res)
    return move
 
 def minimax(state, depth, alpha, beta, ourTurn):              #input current state
    bestMove = -1
 
    if(endState(state)):
-    #  print("Result:", 1 if not ourTurn else -1)
+     # print("END:", 1 if not ourTurn else -1)
       return (100, bestMove) if not ourTurn else (-100, bestMove)
 
    if depth == 0:
     #  print("Result:", 0)
-      return evaluatePosition2(state), bestMove
+      return evaluatePosition(state), bestMove
+    
 
    if ourTurn:
       maxEval = -INFINITY
@@ -132,25 +134,43 @@ def minimax(state, depth, alpha, beta, ourTurn):              #input current sta
      # print("Move:", bestMove, "Worst:", minEval, "Depth:", depth)
       return minEval, bestMove
 
-
-def evaluatePosition2(state, p=False): 
-   # Test rows
-   tot = 0
+def evaluatePosition(state, p = False):
+   ourThreats = set()
+   opponentsThreats = set()
+   z = 0          #index of the threat
+    # Test rows
    for i in range(board_shape[0]):
       for j in range(board_shape[1] - 3):
-            value = sum(state[i][j:j + 4])
-            if abs(value) == 3:
-               if p: print("row i j:", i, j)
-               tot+=(value/3)
+         value = 0
+         for k in range(4):
+            value += state[i][j+k]
+            if state[i][j+k] == 0:
+               z = (i,j+k)
+         
+         if abs(value) == 3:
+            if p: print("row:", z)
+            if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+               ourThreats.add(z) 
+            elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+               opponentsThreats.add(z)
+              
 
    # Test columns on transpose array
    reversed_board = [list(i) for i in zip(*state)]
    for i in range(board_shape[1]):
       for j in range(board_shape[0] - 3):
-            value = sum(reversed_board[i][j:j + 4])
+            value = 0
+            for k in range(4):
+               value += reversed_board[i][j+k]
+               if reversed_board[i][j+k] == 0:
+                  z = (j,i)
+
             if abs(value) == 3:
-               if p: print("col i j", j, i) 
-               tot+=(value/3)
+               if p: print("col:", z)
+               if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+                  ourThreats.add(z) 
+               elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+                  opponentsThreats.add(z)
 
    # Test diagonal
    for i in range(board_shape[0] - 3):
@@ -158,9 +178,16 @@ def evaluatePosition2(state, p=False):
             value = 0
             for k in range(4):
                value += state[i + k][j + k]
-               if abs(value) == 3:
-                  if p: print("diag (i j)", i,j, "   ", i+1,j+1, "  ",i+2,j+2, "  ", i+3,j+3)
-                  tot+=(value/3)
+               if state[i+k][j+k] == 0:
+                  z = (i+k,j+k)
+
+            if abs(value) == 3:
+               if p: print("DiagR:",z)
+
+               if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+                  ourThreats.add(z) 
+               elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+                  opponentsThreats.add(z)
 
    reversed_board = np.fliplr(state)
    # Test reverse diagonal
@@ -169,61 +196,21 @@ def evaluatePosition2(state, p=False):
             value = 0
             for k in range(4):
                value += reversed_board[i + k][j + k]
-               if abs(value) == 3:
-                  if p: print("diag2", i,j)
-                  tot+=(value/3)
-
-   return tot
-
-def evaluatePosition(state):
-   tot = 0
-
-   # Test rows
-   for i in range(board_shape[0]):
-      for j in range(board_shape[1] - 2):
-            value = sum(state[i][j:j + 3])
+               if reversed_board[i+k][j+k] == 0:
+                  z = (i+k,board_shape[1]-1-j-k)
             if abs(value) == 3:
-               if j > 0 and state[i][j-1] == 0:
-                  tot += value
-               if j < board_shape[1]-3 and state[i][j+3] == 0:
-                  tot += value
+               if p: print("DiagL:", z)
 
-   # Test columns on transpose array
-   reversed_board = [list(i) for i in zip(*state)]
-   for i in range(board_shape[1]):
-      for j in range(board_shape[0] - 2):
-            value = sum(reversed_board[i][j:j + 3])
-            if abs(value) == 3:
-               if j > 0 and reversed_board[i][j-1] == 0:
-                     tot += value
-               if j < board_shape[0]-3 and reversed_board[i][j+3] == 0:
-                     tot += value
+               if value > 0 and z not in ourThreats:
+                  ourThreats.add(z) 
+               elif value < 0 and z not in opponentsThreats:
+                  opponentsThreats.add(z)
+   if p: print("Our Threats:", ourThreats, "Opponents Threats:", opponentsThreats)
 
-   # Test diagonal
-   for i in range(board_shape[0] - 2):
-      for j in range(board_shape[1] - 2):
-            value = 0
-            for k in range(3):
-               value += state[i + k][j + k]
-            if abs(value) == 3:
-               if i > 0 and k > 0 and state[i-1][k-1] == 0:
-                  tot += value
-               if (i+3) < board_shape[0] and j+3 < board_shape[1] and state[i+3][j+3] == 0:
-                  tot += value
+   return len(ourThreats) - len(opponentsThreats)
 
-   reversed_board = np.fliplr(state)
-   # Test reverse diagonal
-   for i in range(board_shape[0] - 2):
-      for j in range(board_shape[1] - 2):
-            value = 0
-            for k in range(3):
-               value += reversed_board[i + k][j + k]
-            if abs(value) == 3:
-               if i > 0 and k > 0 and reversed_board[i-1][k-1] == 0:
-                  tot += value
-               if (i+3) < board_shape[0] and j+3 < board_shape[1] and reversed_board[i+3][j+3] == 0:
-                  tot += value
-   return tot
+
+
 
 def getChild(state, move, ourTurn):
    stateCopy = np.copy(state)

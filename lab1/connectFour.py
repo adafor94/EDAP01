@@ -72,17 +72,8 @@ def opponents_move(env, state):
    env.change_player() # change back to student before returning
    return state, reward, done
 
-def student_move_og():
-   """
-   TODO: Implement your min-max alpha-beta pruning algorithm here.
-   Give it whatever input arguments you think are necessary
-   (and change where it is called).
-   The function should return a move from 0-6
-   """
-   return random.choice([0, 1, 2, 3, 4, 5, 6])
-
 def student_move(state):
-  # print("res:", evaluatePosition(state, p=True))
+   print(evaluatePosition(state, p=True))
    res, move = minimax(state, 6, -INFINITY, INFINITY, True)
    print("move", move, "res", res)
    return move
@@ -91,19 +82,14 @@ def minimax(state, depth, alpha, beta, ourTurn):              #input current sta
    bestMove = -1
 
    if(endState(state)):
-     # print("END:", 1 if not ourTurn else -1)
       return (100, bestMove) if not ourTurn else (-100, bestMove)
 
    if depth == 0:
-    #  print("Result:", 0)
       return evaluatePosition(state), bestMove
     
-
    if ourTurn:
       maxEval = -INFINITY
       for move in availableMoves(state):
-      #   print("In maxEval at depth", depth, "move: ", move)
-
          childState = getChild(state, move, ourTurn)
          res, _ = minimax(childState, depth-1, alpha, beta, False)
          if  res > maxEval:
@@ -114,14 +100,11 @@ def minimax(state, depth, alpha, beta, ourTurn):              #input current sta
          if beta <= alpha:
             break
 
-  #    print("Move:", bestMove, "Best:", maxEval, "Depth:", depth)
       return maxEval, bestMove
 
-   else:
-      
+   else:  
       minEval = INFINITY
       for move in availableMoves(state):
-        # print("In minEval at depth", depth, "move: ", move)
          childState = getChild(state, move, ourTurn)
          res, _ = minimax(childState, depth-1, alpha, beta, True)
          if  res < minEval:
@@ -131,14 +114,14 @@ def minimax(state, depth, alpha, beta, ourTurn):              #input current sta
          beta = min(beta, minEval)
          if beta <= alpha:
             break
-     # print("Move:", bestMove, "Worst:", minEval, "Depth:", depth)
+    
       return minEval, bestMove
 
 def evaluatePosition(state, p = False):
    ourThreats = set()
    opponentsThreats = set()
    z = 0          #index of the threat
-    # Test rows
+  
    for i in range(board_shape[0]):
       for j in range(board_shape[1] - 3):
          value = 0
@@ -149,11 +132,10 @@ def evaluatePosition(state, p = False):
          
          if abs(value) == 3:
             if p: print("row:", z)
-            if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+            if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
                ourThreats.add(z) 
-            elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+            elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
                opponentsThreats.add(z)
-              
 
    # Test columns on transpose array
    reversed_board = [list(i) for i in zip(*state)]
@@ -167,9 +149,9 @@ def evaluatePosition(state, p = False):
 
             if abs(value) == 3:
                if p: print("col:", z)
-               if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
                   ourThreats.add(z) 
-               elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
                   opponentsThreats.add(z)
 
    # Test diagonal
@@ -184,9 +166,9 @@ def evaluatePosition(state, p = False):
             if abs(value) == 3:
                if p: print("DiagR:",z)
 
-               if value > 0 and z not in ourThreats and (z[0]-1, z[1]) in opponentsThreats:
+               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
                   ourThreats.add(z) 
-               elif value < 0 and z not in opponentsThreats and (z[0]-1, z[1]) in ourThreats:
+               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
                   opponentsThreats.add(z)
 
    reversed_board = np.fliplr(state)
@@ -201,16 +183,13 @@ def evaluatePosition(state, p = False):
             if abs(value) == 3:
                if p: print("DiagL:", z)
 
-               if value > 0 and z not in ourThreats:
+               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
                   ourThreats.add(z) 
-               elif value < 0 and z not in opponentsThreats:
+               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
                   opponentsThreats.add(z)
    if p: print("Our Threats:", ourThreats, "Opponents Threats:", opponentsThreats)
 
    return len(ourThreats) - len(opponentsThreats)
-
-
-
 
 def getChild(state, move, ourTurn):
    stateCopy = np.copy(state)

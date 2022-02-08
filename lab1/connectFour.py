@@ -1,12 +1,13 @@
 from json.encoder import INFINITY
+#from turtle import pos
 import gym
 import random
 import requests
 import numpy as np
 import argparse
 import sys
+import time
 
-from sqlalchemy import true
 from gym_connect_four import ConnectFourEnv
 
 env: ConnectFourEnv = gym.make("ConnectFour-v0")
@@ -17,6 +18,39 @@ API_KEY = 'nyckel'
 STIL_ID = ["ad0014fo-s"] # TODO: fill this list with your stil-id's
 
 board_shape = (6,7)
+
+def calc_depth(second):
+   depth = 0
+   tot = 0
+   state = np.zeros((6,7))
+   while tot < second:
+      depth += 1
+      now = time.time()
+      minimax(state, depth, True)
+      tot = time.time() - now
+      print(depth, tot)
+
+   return depth-1
+
+def minimax(state, depth, ourTurn):              #input current state
+   positionScore = evaluatePosition(state)
+   if abs(positionScore) == 100 or depth == 0:
+      return positionScore
+
+   if ourTurn:
+      maxEval = -INFINITY
+      for childState in getAllChildren(state, ourTurn):
+         res = minimax(childState, depth-1, False)
+         if  res > maxEval:
+            maxEval = res
+      return maxEval
+   else:  
+      minEval = INFINITY
+      for childState in getAllChildren(state, ourTurn):
+         res = minimax(childState, depth-1, True)
+         if  res < minEval:
+            minEval = res
+      return minEval
 
 def call_server(move):
    res = requests.post(SERVER_ADRESS + "move",
@@ -72,122 +106,117 @@ def opponents_move(env, state):
    env.change_player() # change back to student before returning
    return state, reward, done
 
-def student_move(state):
-   print(evaluatePosition(state, p=True))
-   res, move = minimax(state, 6, -INFINITY, INFINITY, True)
-   print("move", move, "res", res)
-   return move
-
-def minimax(state, depth, alpha, beta, ourTurn):              #input current state
+def student_move(state, depth):
    bestMove = -1
+   alpha = -INFINITY
+   for move in availableMoves(state):
+      childPosition = getChild(state, move, True)
+      result = alphabeta(childPosition, depth, alpha, INFINITY, False)
+      if result > alpha:
+         bestMove = move
+         alpha = result
+   return bestMove
 
-   if(endState(state)):
-      return (100, bestMove) if not ourTurn else (-100, bestMove)
+def alphabeta(state, depth, alpha, beta, ourTurn): 
+   positionScore = evaluatePosition(state)
 
-   if depth == 0:
-      return evaluatePosition(state), bestMove
-    
+   if abs(positionScore) == 100 or depth == 0:
+      return positionScore
+
    if ourTurn:
       maxEval = -INFINITY
-      for move in availableMoves(state):
-         childState = getChild(state, move, ourTurn)
-         res, _ = minimax(childState, depth-1, alpha, beta, False)
+      for childState in getAllChildren(state, ourTurn):
+         res = alphabeta(childState, depth-1, alpha, beta, False)
          if  res > maxEval:
             maxEval = res
-            bestMove = move
-         
          alpha = max(alpha, maxEval)
          if beta <= alpha:
             break
-
-      return maxEval, bestMove
-
+      return maxEval
    else:  
       minEval = INFINITY
-      for move in availableMoves(state):
-         childState = getChild(state, move, ourTurn)
-         res, _ = minimax(childState, depth-1, alpha, beta, True)
+      for childState in getAllChildren(state, ourTurn):
+         res = alphabeta(childState, depth-1, alpha, beta, True)
          if  res < minEval:
             minEval = res
-            bestMove = move
-
          beta = min(beta, minEval)
          if beta <= alpha:
             break
-    
-      return minEval, bestMove
+      return minEval
 
-def evaluatePosition(state, p = False):
+def evaluatePosition(state):
    ourThreats = set()
    opponentsThreats = set()
    z = 0          #index of the threat
-  
-   for i in range(board_shape[0]):
-      for j in range(board_shape[1] - 3):
+
+   for i in reversed(range(board_shape[0])):
+      for j in reversed(range(board_shape[1] - 3)):
          value = 0
          for k in range(4):
             value += state[i][j+k]
             if state[i][j+k] == 0:
                z = (i,j+k)
-         
-         if abs(value) == 3:
-            if p: print("row:", z)
-            if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
-               ourThreats.add(z) 
-            elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
-               opponentsThreats.add(z)
+         if value == 4:
+            return 100
+         if value == -4:
+            return -100
+         if value == 3 and (z[0]+1, z[1]) not in opponentsThreats:
+            ourThreats.add(z) 
+         elif value == -3 and (z[0]+1, z[1]) not in ourThreats:
+            opponentsThreats.add(z)
 
    # Test columns on transpose array
    reversed_board = [list(i) for i in zip(*state)]
-   for i in range(board_shape[1]):
-      for j in range(board_shape[0] - 3):
-            value = 0
-            for k in range(4):
-               value += reversed_board[i][j+k]
-               if reversed_board[i][j+k] == 0:
-                  z = (j,i)
-
-            if abs(value) == 3:
-               if p: print("col:", z)
-               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
-                  ourThreats.add(z) 
-               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
-                  opponentsThreats.add(z)
+   for i in reversed(range(board_shape[1])):
+      for j in reversed(range(board_shape[0] - 3)):
+         value = 0
+         for k in range(4):
+            value += reversed_board[i][j+k]
+            if reversed_board[i][j+k] == 0:
+               z = (j,i)
+         if value == 4:
+            return 100
+         if value == -4:
+            return -100
+         if value == 3 and (z[0]+1, z[1]) not in opponentsThreats:
+            ourThreats.add(z) 
+         elif value == -3 and (z[0]+1, z[1]) not in ourThreats:
+            opponentsThreats.add(z)
 
    # Test diagonal
-   for i in range(board_shape[0] - 3):
-      for j in range(board_shape[1] - 3):
+   for i in reversed(range(board_shape[0] - 3)):
+      for j in reversed(range(board_shape[1] - 3)):
             value = 0
             for k in range(4):
                value += state[i + k][j + k]
                if state[i+k][j+k] == 0:
                   z = (i+k,j+k)
-
-            if abs(value) == 3:
-               if p: print("DiagR:",z)
-
-               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
-                  ourThreats.add(z) 
-               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
-                  opponentsThreats.add(z)
+            if value == 4:
+               return 100
+            if value == -4:
+               return -100
+            if value == 3 and (z[0]+1, z[1]) not in opponentsThreats:
+               ourThreats.add(z) 
+            elif value == -3 and (z[0]+1, z[1]) not in ourThreats:
+               opponentsThreats.add(z)
 
    reversed_board = np.fliplr(state)
    # Test reverse diagonal
-   for i in range(board_shape[0] - 3):
-      for j in range(board_shape[1] - 3):
+   for i in reversed(range(board_shape[0] - 3)):
+      for j in reversed(range(board_shape[1] - 3)):
             value = 0
             for k in range(4):
                value += reversed_board[i + k][j + k]
                if reversed_board[i+k][j+k] == 0:
                   z = (i+k,board_shape[1]-1-j-k)
-            if abs(value) == 3:
-               if p: print("DiagL:", z)
-
-               if value > 0 and (z[0]+1, z[1]) not in opponentsThreats:
-                  ourThreats.add(z) 
-               elif value < 0 and (z[0]+1, z[1]) not in ourThreats:
-                  opponentsThreats.add(z)
-   if p: print("Our Threats:", ourThreats, "Opponents Threats:", opponentsThreats)
+            if value == 4:
+               return 100
+            if value == -4:
+               return -100
+            if value == 3 and (z[0]+1, z[1]) not in opponentsThreats:
+               ourThreats.add(z) 
+            elif value == -3 and (z[0]+1, z[1]) not in ourThreats:
+               opponentsThreats.add(z)
 
    return len(ourThreats) - len(opponentsThreats)
 
@@ -203,42 +232,11 @@ def availableMoves(state):
    return set(
       (i for i in range(board_shape[1]) if state[0][i] == 0))
 
-def endState(state): 
-   # Test rows
-   for i in range(board_shape[0]):
-      for j in range(board_shape[1] - 3):
-            value = sum(state[i][j:j + 4])
-            if abs(value) == 4:
-               return True
-
-   # Test columns on transpose array
-   reversed_board = [list(i) for i in zip(*state)]
-   for i in range(board_shape[1]):
-      for j in range(board_shape[0] - 3):
-            value = sum(reversed_board[i][j:j + 4])
-            if abs(value) == 4:
-               return True
-
-   # Test diagonal
-   for i in range(board_shape[0] - 3):
-      for j in range(board_shape[1] - 3):
-            value = 0
-            for k in range(4):
-               value += state[i + k][j + k]
-               if abs(value) == 4:
-                  return True
-
-   reversed_board = np.fliplr(state)
-   # Test reverse diagonal
-   for i in range(board_shape[0] - 3):
-      for j in range(board_shape[1] - 3):
-            value = 0
-            for k in range(4):
-               value += reversed_board[i + k][j + k]
-               if abs(value) == 4:
-                  return True
-
-   return False
+def getAllChildren(state, ourTurn):
+   children = []
+   for move in availableMoves(state):
+      children.append(getChild(state, move, ourTurn))
+   return children
 
 def play_game(vs_server = False):
    """
@@ -251,7 +249,9 @@ def play_game(vs_server = False):
    error = -10 (you get this if you try to play in a full column)
    Currently the player always makes the first move
    """
-
+   seconds = input("Please enter maximum thinking time (seconds): ")
+   depth = calc_depth(int(seconds))
+   print("Depth:", depth)
    # default state
    state = np.zeros((6, 7), dtype=int)
 
@@ -284,8 +284,9 @@ def play_game(vs_server = False):
    done = False
    while not done:
       # Select your move
-      stmove = student_move(state) # TODO: change input here
-
+      now = time.time()
+      stmove = student_move(state, depth) # TODO: change input here
+      print("Calc time:", time.time() - now)
       # make both student and bot/server moves
       if vs_server:
          # Send your move to server and get response

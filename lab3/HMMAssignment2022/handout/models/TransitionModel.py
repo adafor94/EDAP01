@@ -15,6 +15,7 @@ class TransitionModel:
         self.__dim = self.__rows * self.__cols * self.__head
 
         self.__matrix = np.zeros(shape=(self.__dim, self.__dim), dtype=float)
+
         for i in range(self.__dim):
             x, y, h = self.__sm.state_to_pose(i)
             for j in range(self.__dim):
@@ -60,7 +61,6 @@ class TransitionModel:
                                         h == 0 and nh == 3 or h == 3 and nh == 0) and x == self.__rows - 1 and y == self.__cols - 1:
 
                             self.__matrix[i, j] = 0.3
-
         if (self.__rows == 1 or self.__cols == 1) and self.__rows * self.__cols != 1:  # if we only have one row or colum in the grid, but more than 1 cells
             for i in range(self.__dim):
                 sum = np.sum(self.__matrix[i, :])

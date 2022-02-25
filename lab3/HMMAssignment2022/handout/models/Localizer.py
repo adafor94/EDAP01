@@ -62,7 +62,7 @@ class Localizer:
     
     # add your simulator and filter here, for example    
         
-        self.__rs = RobotSimAndFilter.RobotSim(self.__sm, self.__tm, self.__trueState)
+        self.__rs = RobotSimAndFilter.RobotSim(self.__sm, self.__trueState)
         self.__HMM = RobotSimAndFilter.HMMFilter(self.__sm, self.__tm, self.__om)
     #
     #  Implement the update cycle:
@@ -89,29 +89,28 @@ class Localizer:
         self.__trueState = self.__rs.next_state() 
         tsX, tsY, tsH = self.__sm.state_to_pose(self.__trueState)
 
+      #  print("True pose:", self.__sm.state_to_pose(self.__trueState))
+
         self.__sense = self.__rs.robot_sensing(tsX, tsY)
+      #  print("Sensing:", self.__sense)
 
-        self.__probs = self.__HMM.filtering(self.__sense, self.__probs)
-
-        print("True pos:", self.__sm.state_to_position(self.__trueState))
-        print("Sensing:", self.__sense)
+        self.__probs, self.__estimate = self.__HMM.filtering(self.__sense, self.__probs)
 
         
         # this block can be kept as is
         ret = False  # in case the sensor reading is "nothing" this is kept...
-      #  tsX, tsY, tsH = self.__sm.state_to_pose(self.__trueState)      #Moved up
+
         srX = -1
         srY = -1
         if self.__sense != None:
             srX, srY = self.__sense
             ret = True
         
-        self.__estimate = self.__sm.state_to_position(np.argmax(self.__probs))
         eX, eY = self.__estimate
         print("Estimate:", eX, eY)
 
         # this should be updated to spit out the actual error for this step
-        error = abs(tsX-eX) + abs(tsY-eY)     
+        error = abs(tsX-eX) + abs(tsY-eY)     #manhattan distance
         
         print("Error:", error)
         # if you use the visualisation (dashboard), this return statement needs to be kept the same

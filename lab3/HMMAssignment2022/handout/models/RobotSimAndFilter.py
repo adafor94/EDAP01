@@ -39,7 +39,7 @@ class RobotSim:
             prob = random.random()
             if prob < 0.3:
                 prev = h
-                while prev == h:
+                while prev == h:                   # Random until new heading is not the same as the old one
                     h = random.choice(possible_headings)
         else:
             h = random.choice(possible_headings)
@@ -108,10 +108,11 @@ class HMMFilter:
 
         #estimate = self.sm.state_to_position(np.argmax(res))
 
-        #sum probabilitites of states corresponding to the same position 
+        
         estimate = self.getEstimate(probs)
         return probs, estimate
-    
+        
+    #sum probabilitites of states corresponding to the same position 
     def getEstimate(self, probs):
         probabilities = {}
         for i, p in enumerate(probs):

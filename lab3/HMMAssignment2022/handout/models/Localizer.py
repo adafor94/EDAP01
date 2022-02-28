@@ -94,9 +94,20 @@ class Localizer:
         self.__sense = self.__rs.robot_sensing(tsX, tsY)
       #  print("Sensing:", self.__sense)
 
+        #Filtering:
         self.__probs, self.__estimate = self.__HMM.filtering(self.__sense, self.__probs)
 
-        
+       # Pure guessing: 
+        # random_state = random.randint(0, self.__sm.get_num_of_states()-1)
+        # self.__estimate = self.__sm.state_to_position(random_state)
+
+        #Sensing:
+        # if self.__sense:
+        #     self.__estimate = self.__sense 
+        # else:
+        #     random_state = random.randint(0, self.__sm.get_num_of_states()-1)
+        #     self.__estimate = self.__sm.state_to_position(random_state)
+
         # this block can be kept as is
         ret = False  # in case the sensor reading is "nothing" this is kept...
 
@@ -107,12 +118,12 @@ class Localizer:
             ret = True
         
         eX, eY = self.__estimate
-        print("Estimate:", eX, eY)
+      #  print("Estimate:", eX, eY)
 
         # this should be updated to spit out the actual error for this step
         error = abs(tsX-eX) + abs(tsY-eY)     #manhattan distance
         
-        print("Error:", error)
+      #  print("Error:", error)
         # if you use the visualisation (dashboard), this return statement needs to be kept the same
         # or the visualisation needs to be adapted (your own risk!)
         return ret, tsX, tsY, tsH, srX, srY, eX, eY, error, self.__probs

@@ -13,10 +13,7 @@ class RobotSim:
     def __init__(self, sm : StateModel, true_state):
         self.sm : StateModel = sm 
         self.true_state = true_state           
-
         self.rows, self.cols, self.head = self.sm.get_grid_dimensions()
-
-        print("Hello World / RobotSim")
 
     def possibleHeadings(self, x, y):
             possible_heading = []
@@ -38,9 +35,8 @@ class RobotSim:
         if h in possible_headings:              #No wall in front of robot
             prob = random.random()
             if prob < 0.3:
-                prev = h
-                while prev == h:                   # Random until new heading is not the same as the old one
-                    h = random.choice(possible_headings)
+                possible_headings.remove(h)
+                h = random.choice(possible_headings)
         else:
             h = random.choice(possible_headings)
 
@@ -89,7 +85,6 @@ class HMMFilter:
         self.sm : StateModel = sm
         self.tm : TransitionModel = tm
         self.ob : ObservationModel = ob
-        print("Hello again, World / HMMFilter")
     
     def filtering(self, sense, probs):
         #Get sensed position as reading
@@ -101,14 +96,7 @@ class HMMFilter:
         
         probs = (1.0 / sum(probs) ) * probs         #Normalize
         
-        #print most likely states for debugging
-        # topStates = (-probs).argsort()[:5]
-        # for s in topStates:
-        #     print("Pose:", self.sm.state_to_pose(s), "Likelihood:", res[s])
-
         #estimate = self.sm.state_to_position(np.argmax(res))
-
-        
         estimate = self.getEstimate(probs)
         return probs, estimate
         

@@ -88,16 +88,15 @@ class Localizer:
         # 
         self.__trueState = self.__rs.next_state() 
         tsX, tsY, tsH = self.__sm.state_to_pose(self.__trueState)
-
-      #  print("True pose:", self.__sm.state_to_pose(self.__trueState))
-
         self.__sense = self.__rs.robot_sensing(tsX, tsY)
-      #  print("Sensing:", self.__sense)
+
+        #Below are different ways of estimating the robots position. 
+        #Filtering, guessing and sensing. These are used for comparison. 
 
         #Filtering:
         self.__probs, self.__estimate = self.__HMM.filtering(self.__sense, self.__probs)
 
-       # Pure guessing: 
+        # Pure guessing: 
         # random_state = random.randint(0, self.__sm.get_num_of_states()-1)
         # self.__estimate = self.__sm.state_to_position(random_state)
 
